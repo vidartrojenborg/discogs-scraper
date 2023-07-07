@@ -114,3 +114,54 @@ class DiscogsMarketplaceParser:
     @property
     def release_page_url(self) -> str:
         return f'https://discogs.com{self.__soup.select("a.release-page")[0]["href"]}'
+
+
+class DiscogsSearchParser:
+    def __init__(self, soup: object):
+        """
+        Parser class for Discogs marketplace items.
+
+        Available getters:
+            * artist
+            * title
+            * label
+            * number_of_tracks
+            * release_date
+            * price
+            * rating
+            * votes
+            * have
+            * want
+            * limited_edition
+            * release_format
+            * media_condition
+            * sleeve_condition
+
+        :param soup: BeautifulSoup object
+        """
+        self.__soup = soup
+
+    @property
+    def artist(self) -> str:
+        return self.__soup.select("#page > div > div:nth-child(2) > div > h1 > span > a")[0].text.strip()
+
+    @property
+    def title(self) -> str:
+        release_text = self.__soup.select("#page > div > div:nth-child(2) > div > h1")[0].text
+        return release_text.replace(self.__soup.select("#page > div > div:nth-child(2) > div > h1 > span > a")[0].text.strip(),"")[3:]
+
+    @property
+    def price(self) -> float:
+        return self.__soup.select("#master-release-marketplace > header > div > span > span")[0].text.replace('\\xa', '')
+
+    @property
+    def have(self) -> int:
+        return int(self.__soup.select("#master-statistics > div > div > div:nth-child(1) > ul > li:nth-child(1) > a")[0].text)
+
+    @property
+    def want(self) -> int:
+        return int(self.__soup.select("#master-statistics > div > div > div:nth-child(1) > ul > li:nth-child(2) > a")[0].text)
+
+    @property
+    def url(self) -> str:
+        return f'https://discogs.com/master/{self.__soup.select("#master-actions > header > button > span")[0].text.replace("[","").replace("]","").replace("m","")}'

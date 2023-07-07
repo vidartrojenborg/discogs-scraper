@@ -9,7 +9,7 @@ import re
 
 
 class DiscogsMarketplaceScraper:
-    def __init__(self, style: str, items_to_scrape: int, export_to_csv: bool = False):
+    def __init__(self, style: str, year: int, country: str, items_to_scrape: int, export_to_csv: bool = False):
         """
         Discogs.com marketplace scraper class.
         Available methods:
@@ -24,11 +24,11 @@ class DiscogsMarketplaceScraper:
             * export_to_csv
         """
         self.__style = style
+        self.__year = year
+        self.__country = country
         self.__currency = "EUR"
         self.__format = "Vinyl"
-        self.__columns = ["artist", "title", "label", "release_format", "number_of_tracks", "release_date", "price",
-                          "rating", "votes", "have", "want", "limited_edition", "media_condition", "sleeve_condition",
-                          "release_page"]
+        self.__columns = ["artist", "title", "price", "have", "want", "url"]
         self.__items_to_scrape = items_to_scrape
         self.__export_to_csv = export_to_csv
 
@@ -47,9 +47,13 @@ class DiscogsMarketplaceScraper:
             time.sleep(random.randint(1, 2))
             url = f"https://www.discogs.com{item_link['href']}"
             print(f"Processing item {count}/{len(item_links)}: {url}")
-            item = self.parse_item(self.load_url(url))
-            if item:
-                records.extend([item])
+            try:
+                item = self.parse_item(self.load_url(url))
+                if item:
+                    records.extend([item])
+            except:
+                print("This item could not be parsed... ")
+                records.extend([('-', '-', '-', 0, 0, url)])
             count += 1
 
         df = pd.DataFrame(records, columns=self.__columns)
@@ -66,14 +70,15 @@ class DiscogsMarketplaceScraper:
         item_links = []
         for i in range(1, self.pages_to_scrape+1):
             time.sleep(random.randint(1, 2))
-            url = f"https://www.discogs.com/sell/list?sort=listed%2Cdesc" \
+            url = f"https://www.discogs.com/search/?type=all" \
                   f"&limit={self.items_per_page}" \
-                  f"&currency={self.__currency}" \
-                  f"&format={self.__format}" \
-                  f"&style={self.__style.title().replace(' ', '+')}" \
+                  f"&format_exact={self.__format}" \
+                  f"&style_exact={self.__style.title().replace(' ', '+')}" \
+                  f"&ships_from={self.__country}" \
+                  f"&year={self.__year}" \
                   f"&page={i}"
             soup = self.load_url(url)
-            item_links.extend(soup.find_all("a", class_="item_description_title"))
+            item_links.extend(soup.find_all("a", class_="search_result_title"))
 
         return item_links[0:self.__items_to_scrape]
 
@@ -83,15 +88,17 @@ class DiscogsMarketplaceScraper:
         :raise: ValueError if items to fetch value is higher than items actually available at the marketplace.
         :return: None
         """
-        url = f"https://www.discogs.com/sell/list?sort=listed%2Cdesc" \
+        url = f"https://www.discogs.com/search/?type=all" \
               f"&limit={self.items_per_page}" \
-              f"&currency={self.__currency}" \
-              f"&format={self.__format}" \
-              f"&style={self.__style.title().replace(' ', '+')}" \
+              f"&format_exact={self.__format}" \
+              f"&style_exact={self.__style.title().replace(' ', '+')}" \
+              f"&ships_from={self.__country}" \
+              f"&year={self.__year}" \
               f"&page=1"
         soup = self.load_url(url)
         max_items = int(re.search("of (.*)", soup.find("strong", class_="pagination_total").text.strip())
                         .group(1).replace(",", ""))
+        print(f"Given the current filtering there are {max_items} possible releases to retrieve")
         if self.__items_to_scrape > max_items:
             raise ValueError(f"{self.__items_to_scrape} items is more than actually available in the marketplace.")
         return
@@ -148,24 +155,13 @@ class DiscogsMarketplaceScraper:
         :param soup: BeautifulSoup object
         :return: tuple
         """
-        parse = parser.DiscogsMarketplaceParser(soup)
-        if parse.item_exists:
-            return parse.artist, \
-                parse.title, \
-                parse.label, \
-                parse.release_format, \
-                parse.number_of_tracks, \
-                parse.release_date, \
-                parse.price, \
-                parse.rating, \
-                parse.votes, \
-                parse.have, \
-                parse.want, \
-                parse.limited_edition, \
-                parse.media_condition, \
-                parse.sleeve_condition, \
-                parse.release_page_url
-        return ()
+        parse = parser.DiscogsSearchParser(soup)
+        return parse.artist, \
+            parse.title, \
+            parse.price, \
+            parse.have, \
+            parse.want, \
+            parse.url
 
     def export_to_csv(self, df: pd.DataFrame) -> None:
         """
