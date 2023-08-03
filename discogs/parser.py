@@ -148,20 +148,27 @@ class DiscogsSearchParser:
     @property
     def title(self) -> str:
         release_text = self.__soup.select("#page > div > div:nth-child(2) > div > h1")[0].text
-        return release_text.replace(self.__soup.select("#page > div > div:nth-child(2) > div > h1 > span > a")[0].text.strip(),"")[3:]
+        return release_text.replace(
+            self.__soup.select("#page > div > div:nth-child(2) > div > h1 > span > a")[0].text.strip(), "")[3:]
 
-    @property
-    def price(self) -> float:
-        return self.__soup.select("#master-release-marketplace > header > div > span > span")[0].text.replace('\\xa', '')
+    def price(self) -> float | None:
+        try:
+            return self.__soup.select("#master-release-marketplace > header > div > span > span")[0].text.replace('\\xa','')
+        except:
+            print("Price could not be scraped")
+            return None
+
 
     @property
     def have(self) -> int:
-        return int(self.__soup.select("#master-statistics > div > div > div:nth-child(1) > ul > li:nth-child(1) > a")[0].text)
+        return int(
+            self.__soup.select("#master-statistics > div > div > div:nth-child(1) > ul > li:nth-child(1) > a")[0].text)
 
     @property
     def want(self) -> int:
-        return int(self.__soup.select("#master-statistics > div > div > div:nth-child(1) > ul > li:nth-child(2) > a")[0].text)
+        return int(
+            self.__soup.select("#master-statistics > div > div > div:nth-child(1) > ul > li:nth-child(2) > a")[0].text)
 
     @property
     def url(self) -> str:
-        return f'https://discogs.com/master/{self.__soup.select("#master-actions > header > button > span")[0].text.replace("[","").replace("]","").replace("m","")}'
+        return f'https://discogs.com/master/{self.__soup.select("#master-actions > header > button > span")[0].text.replace("[", "").replace("]", "").replace("m", "")}'

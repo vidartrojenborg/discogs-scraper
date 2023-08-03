@@ -74,7 +74,7 @@ class DiscogsMarketplaceScraper:
                   f"&limit={self.items_per_page}" \
                   f"&format_exact={self.__format}" \
                   f"&style_exact={self.__style.title().replace(' ', '+')}" \
-                  f"&ships_from={self.__country}" \
+                  f"&country_exact={self.__country}" \
                   f"&year={self.__year}" \
                   f"&page={i}"
             soup = self.load_url(url)
@@ -92,7 +92,7 @@ class DiscogsMarketplaceScraper:
               f"&limit={self.items_per_page}" \
               f"&format_exact={self.__format}" \
               f"&style_exact={self.__style.title().replace(' ', '+')}" \
-              f"&ships_from={self.__country}" \
+              f"&country_exact={self.__country}" \
               f"&year={self.__year}" \
               f"&page=1"
         soup = self.load_url(url)
